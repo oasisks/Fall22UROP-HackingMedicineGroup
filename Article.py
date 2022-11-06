@@ -75,7 +75,7 @@ class Article:
             file = open(path, "w", encoding="utf-8")
 
             for div in self.divs:
-                file.writelines(_flatten([p.contents for p in div.paragraphs()]))
+                print(_flatten([p.contents for p in div.paragraphs()]))
 
             file.close()
 
