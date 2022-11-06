@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
+import os
 
 
 class Div:
@@ -13,6 +14,24 @@ class Div:
         """
 
         return [html_element for html_element in self.div if html_element.name == 'p']
+
+
+def _flatten(to_be_flatten, solution=None) -> list:
+    """
+    Flattens a list
+    :param to_be_flatten: list
+    :return: list
+    """
+    if solution is None:
+        solution = []
+
+    for element in to_be_flatten:
+        if isinstance(element, list):
+            _flatten(element, solution)
+        else:
+            solution.append(element)
+
+    return solution
 
 
 class Article:
@@ -34,6 +53,32 @@ class Article:
         """
         return self._url
 
+    def to_text_file(self) -> None:
+        """
+        Save the article in a .txt extension under the folder named Articles.
+        If Articles do not exist, it will create an Article folder.
+        :return: None
+        """
+
+        path = None
+        try:
+            # attempting to create a directory
+            path = os.path.join(os.getcwd(), r'Articles')
+            os.mkdir(path)
+        except FileExistsError:
+            print("/Article Already exists.")
+        except FileNotFoundError:
+            print("Path is Invalid")
+
+        if path is not None:
+            path = os.path.join(path, f'{self._url.split("/")[-1]}')
+            file = open(path, "w", encoding="utf-8")
+
+            for div in self.divs:
+                file.writelines(_flatten([p.contents for p in div.paragraphs()]))
+
+            file.close()
+
     def __str__(self):
         """
         It should return the html content of the page
@@ -45,7 +90,5 @@ class Article:
 if __name__ == '__main__':
     url = "https://news.mit.edu/2022/methane-research-takes-new-urgency-mit-1102"
     article = Article(url)
-
-    for div in article.divs:
-        print(div.paragraphs())
+    article.to_text_file()
     # print(article)
