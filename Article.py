@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
+import pandas as pd
 import os
 
 
@@ -9,11 +10,35 @@ class Div:
 
     def paragraphs(self) -> list:
         """
-        This returns a list of paragraph objects (if there are any)
+        This returns a list of paragraph texts (if there are any)
         :return: list
         """
 
-        return [html_element for html_element in self.div if html_element.name == 'p']
+        def all_contents(tag) -> str:
+            """
+            A helper function that recursively returns all the contents as a string
+            :param tag: list
+            :return: str
+            """
+
+            content = ""
+            for element in tag:
+                if isinstance(element, str):
+                    content += element
+                else:
+                    content += all_contents(element.contents)
+
+            return content
+
+        return [all_contents(html_element.contents) for html_element in self.div if html_element.name == 'p']
+
+    def list_elements(self) -> list:
+        """
+        Returns all list items under this specific div
+        :return: list
+        """
+        elements = self.div.findAll("li")
+        print(elements)
 
 
 def _flatten(to_be_flatten, solution=None) -> list:
@@ -36,15 +61,26 @@ def _flatten(to_be_flatten, solution=None) -> list:
 
 class Article:
     def __init__(self, url):
+        """
+        self.paragraphs: Div
+        self.related_links: Div
+        self.related_topics: Div
+        """
         self._url = url
 
         _request = requests.get(url)
         self._soup = BeautifulSoup(_request.content, "html.parser")
         self._prettify = self._soup.prettify()
 
-        look_for = {"class": "paragraph paragraph--type--content-block-text paragraph--view-mode--default"}
+        self.contents = {"paragraphs":
+                             {"class": "paragraph paragraph--type--content-block-text paragraph--view-mode--default"},
+                         "related_links":
+                             {"class": "news-article--content--related-links"},
+                         "related_topics":
+                             {"class": "news-article--topics"}}
 
-        self.divs = [Div(div) for div in self._soup.findAll("div", look_for)]
+        self.contents = {topic: [Div(div) for div in self._soup.findAll("div", look_for)]
+                         for topic, look_for in self.contents.items()}
 
     def get_url(self):
         """
@@ -71,13 +107,20 @@ class Article:
             print("Path is Invalid")
 
         if path is not None:
-            path = os.path.join(path, f'{self._url.split("/")[-1]}')
+            path = os.path.join(path, f'{self._url.split("/")[-1]}.txt')
             file = open(path, "w", encoding="utf-8")
 
-            for div in self.divs:
-                print(_flatten([p.contents for p in div.paragraphs()]))
+            for div in self.contents["paragraphs"]:
+                file.write("\n".join(div.paragraphs()))
 
             file.close()
+
+    def to_dataframe(self, csv=True) -> pd.DataFrame:
+        """
+        Converts relevant data into a dataframe
+        :param csv: bool
+        :return: pd.DataFrame
+        """
 
     def __str__(self):
         """
@@ -90,5 +133,3 @@ class Article:
 if __name__ == '__main__':
     url = "https://news.mit.edu/2022/methane-research-takes-new-urgency-mit-1102"
     article = Article(url)
-    article.to_text_file()
-    # print(article)
