@@ -37,8 +37,11 @@ class Div:
         Returns all list items under this specific div
         :return: list
         """
-        elements = self.div.findAll("li")
-        print(elements)
+        li_tags = self.div.find_all("li", href=True)
+
+        for tag in li_tags:
+            print("hello")
+            print(tag['href'])
 
 
 def _flatten(to_be_flatten, solution=None) -> list:
@@ -79,7 +82,7 @@ class Article:
                          "related_topics":
                              {"class": "news-article--topics"}}
 
-        self.contents = {topic: [Div(div) for div in self._soup.findAll("div", look_for)]
+        self.contents = {topic: [Div(div) for div in self._soup.find_all("div", look_for)]
                          for topic, look_for in self.contents.items()}
 
     def get_url(self):
@@ -133,3 +136,6 @@ class Article:
 if __name__ == '__main__':
     url = "https://news.mit.edu/2022/methane-research-takes-new-urgency-mit-1102"
     article = Article(url)
+
+    print(article.contents["related_links"][0].list_elements())
+    
